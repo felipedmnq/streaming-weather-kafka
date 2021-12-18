@@ -1,3 +1,6 @@
+# files
+weather_api_key.ini
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
