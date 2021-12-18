@@ -1,3 +1,8 @@
+'''Kafka Producer
+
+Extract weather data from OpenWeather API: https://openweathermap.org/api
+'''
+
 import time
 import json
 import requests
@@ -26,6 +31,17 @@ openweather_endpoint = None
 api_key = config()
 
 def get_weather_infos(openweather_endpoint):
+    '''Request the data from OpenWeather API
+
+    Params:
+    -------
+        openweather_endpoint - str: 
+            OpenWeather API endpoint.
+
+    Retunr:
+    -------
+        json_msg: return the message to be send to kafka.
+    '''
     api_response = requests.get(openweather_endpoint)
     json_data = api_response.json()
     city_id = json_data['id']
