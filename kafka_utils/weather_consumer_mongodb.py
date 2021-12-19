@@ -1,3 +1,8 @@
+'''Kafka Consumer - kafka -> MongoDB
+
+Consume weather data from kafka to MongoDB.
+'''
+
 from kafka import KafkaConsumer
 from pymongo import MongoClient
 import json
@@ -7,12 +12,15 @@ db_name = "openweather_mdb"
 topic = "openweather"
 
 try:
-   client = MongoClient('localhost',27017)
-   db = client[db_name]
-   print("Connected successfully!")
+    # connect to MongoDB
+    client = MongoClient('localhost',27017)
+    # select or create database
+    db = client[db_name]
+    print("Connected successfully!")
 except:  
-   print("Could not connect to MongoDB")
+    print("Could not connect to MongoDB")
 
+# Instance kafka consumer
 consumer = KafkaConsumer(
     'openweather',
     bootstrap_servers=kfk_bootstrap_server,
@@ -20,7 +28,7 @@ consumer = KafkaConsumer(
     auto_offset_reset='latest',
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 ) 
-
+# get list of databases from mongodb
 dblist = client.list_database_names()
 
 if db_name in dblist:
@@ -29,7 +37,6 @@ if db_name in dblist:
         #json_data = json.loads(msg.value)
         # Create dictionary and ingest data into MongoDB
         msg = msg[6]
-        
         try:
             input_dict = {
                 'created_at': msg['created_at'],
@@ -44,7 +51,7 @@ if db_name in dblist:
                 'feels_like': msg['feels_like'],
                 'humidity': msg['humidity']
             }
-            
+            # insert data into mongodb collection
             input_db = db.openweather.insert_one(input_dict)
             print(f"Data inserted with record ids {input_db}")
         except:

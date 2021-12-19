@@ -1,6 +1,6 @@
 '''Kafka Producer
 
-Extract weather data from OpenWeather API: https://openweathermap.org/api
+Extract weather data from OpenWeather API (https://openweathermap.org/api) to kafka.
 '''
 
 import time
