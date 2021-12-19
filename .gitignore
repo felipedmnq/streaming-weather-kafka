@@ -1,7 +1,7 @@
 # files
 weather_api_key.ini
 teste.ipynb
-config.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
