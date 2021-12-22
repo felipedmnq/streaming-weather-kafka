@@ -77,5 +77,6 @@ while True:
         json_msg = get_weather_infos(openweather_endpoint)
         producer.send(kfk_topic, json_msg)
         print(f'Published {city}: {json.dumps(json_msg)}')
-        print('Whaiting 5 seconds ...')
-        time.sleep(5)
+        sleep = 300
+        print(f'Whaiting {sleep} seconds ...')
+        time.sleep(sleep)
