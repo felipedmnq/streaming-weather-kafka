@@ -1,6 +1,3 @@
-'''Extract data from mongodb
-'''
-
 import os
 import pymongo
 import argparse
@@ -18,15 +15,20 @@ def openweather_mdb_to_json(mongo_uri,
                             db,
                             collection,
                             path_to_save,):
-    '''Get data from MongoDB and saves as json
+    '''Get data from MongoDB and saves as json file.
     
     Params:
     -------
         mongo_uri - str: string connection to MongoDB.
         db - str: Mongo database to extract the data.
         connection - str: Database collection to extract the data.
-        folder_to_save
+        path_to_save - str: Path where the json file will be saved.
+    
+    Return:
+    -------
+        None
     '''
+
     # access to mongodb localy
     cl = pymongo.MongoClient(mongo_uri)
     # get database.collection
@@ -52,6 +54,8 @@ def openweather_mdb_to_json(mongo_uri,
         file.write(json_data)
 
     print(f'{filename} saved at {path_to_save}.')
+
+    return None
 
 def parse_args():
     parser = argparse.ArgumentParser(
