@@ -13,8 +13,7 @@ from bson.json_util import dumps
 
 def openweather_mdb_to_json(mongo_uri,
                             db,
-                            collection,
-                            path_to_save,):
+                            collection):
     '''Get data from MongoDB and saves as json file.
     
     Params:
@@ -42,18 +41,21 @@ def openweather_mdb_to_json(mongo_uri,
     # Converting to the JSON
     json_data = dumps(data_list) 
 
-    # create data folder if not exixts
-    if not os.path.exists(path_to_save):
-        os.makedirs(path_to_save)
-
     today = datetime.today().date()
+    path = '../data/data_lake/landing/'
     filename = f'openweather_{today}.json'.replace('-','')
+    
+     # create data folder if not exixts
+    if not os.path.exists(path):
+        #os.makedirs(path)
+        print(f'{path} does not exists.')
+        raise FileNotFoundError
 
     # Writing data to file openweather.json
-    with open(f'{path_to_save}/{filename}', 'w') as file:
+    with open(f'{path}{filename}', 'w') as file:
         file.write(json_data)
 
-    print(f'{filename} saved at {path_to_save}.')
+    print(f'{filename} saved at {path}.')
 
     return None
 
@@ -68,14 +70,6 @@ def parse_args():
         type=str,
         default="mongodb://localhost:27017/",
         help='<REQUIRED> Mongo URI.'
-    )
-
-    parser.add_argument(
-        '-p',
-        '--pathtosave',
-        type=str,
-        default='../data',
-        help='Path where the json file will be saved.'
     )
 
     parser.add_argument(
@@ -100,12 +94,10 @@ def parse_args():
 def main():
     args = parse_args()
     mongo_uri = args.mongouri
-    path_to_save = args.pathtosave
     db = args.database
     collection = args.collection
 
     openweather_mdb_to_json(mongo_uri=mongo_uri,
-                            path_to_save=path_to_save,
                             db=db,
                             collection=collection)
 
