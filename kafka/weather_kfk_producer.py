@@ -10,27 +10,13 @@ from config import config
 from kafka import KafkaProducer
 
 kfk_bootstrap_server = 'localhost:9092'
-kfk_topic = 'openweather'
 
-producer = KafkaProducer(
-    value_serializer=lambda x: json.dumps(x).encode('utf-8')
-)
+def kafka_producer() -> KafkaProducer:
+    return KafkaProducer(
+        value_serializer=lambda x: json.dumps(x).encode('utf-8')
+    )
 
-json_msg = None
-city_id = None
-lat = None
-lon = None
-country = None
-city_name = None
-temp = None
-max_temp = None
-min_temp = None
-feels_like = None
-humidity = None
-openweather_endpoint = None
-api_key = config()
-
-def get_weather_infos(openweather_endpoint):
+def get_weather_infos(openweather_endpoint:str) -> dict:
     '''Request the data from OpenWeather API
 
     Params:
@@ -70,13 +56,21 @@ def get_weather_infos(openweather_endpoint):
     }
     return json_msg
 
-cities = ('London', 'Berlin', 'Paris', 'Barcelona', 'Amsterdam', 'Krakow', 'Vienna')
-while True:
-    for city in cities:
-        openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}'
-        json_msg = get_weather_infos(openweather_endpoint)
-        producer.send(kfk_topic, json_msg)
-        print(f'Published {city}: {json.dumps(json_msg)}')
-        sleep = 300
-        print(f'Whaiting {sleep} seconds ...')
-        time.sleep(sleep)
+def main():
+    kfk_topic = 'openweather'
+    api_key = config()
+    cities = ('London', 'Berlin', 'Paris', 'Barcelona', 'Amsterdam', 'Krakow', 'Vienna')
+    while True:
+        for city in cities:
+            openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}'
+            json_msg = get_weather_infos(openweather_endpoint)
+            producer = kafka_producer()
+            if isinstance(producer, KafkaProducer):
+                producer.send(kfk_topic, json_msg)
+                print(f'Published {city}: {json.dumps(json_msg)}')
+                sleep = 300
+                print(f'Whaiting {sleep} seconds ...')
+                time.sleep(sleep)
+
+if __name__=="__main__":
+    main()
