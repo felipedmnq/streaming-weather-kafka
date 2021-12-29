@@ -1,0 +1,9 @@
+{
+    "spark_conf": {
+        "master": "local[*]",
+        "app_name": "pyspark"
+    },
+    "log": {
+        "level": null
+    }
+}
