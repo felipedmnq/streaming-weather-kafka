@@ -11,9 +11,7 @@ from bson.json_util import dumps
 #db = 'openweather_db'
 #collection = 'openweather'
 
-def openweather_mdb_to_json(mongo_uri,
-                            db,
-                            collection):
+def openweather_mdb_to_json(mongo_uri:str, db:str, collection:str) -> None:
     '''Get data from MongoDB and saves as json file.
     
     Params:
