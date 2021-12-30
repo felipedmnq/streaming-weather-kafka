@@ -52,7 +52,7 @@ def openFile(filepath:str) -> dict:
 
 def sparkStart(config:dict) -> SparkSession:
     if isinstance(config, dict):
-        pyspark_class.SparkClass(conf={}).startSpark(config)
+        return pyspark_class.SparkClass(conf={}).startSpark(config)
 
 def sparkStop(spark:SparkSession) -> None:
     spark.stop() if isinstance(spark, SparkSession) else None
