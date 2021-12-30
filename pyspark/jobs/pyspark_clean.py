@@ -172,12 +172,16 @@ def save_as_parquet(df, layer):
     '''
     # save as parquet
     if layer not in ["landing", "cleansed", "trusted"]:
-        print(f'Selected data lake layer does not exists, please use "landing", "cleased" or "trusted".')
-        raise FileNotFoundError
+        raise FileNotFoundError('Selected data lake layer does not exists, please use "landing", "cleased" or "trusted".')
         
     today = f'{datetime.today().date()}'.replace('-', '')   
     output_dir = f'../data/data_lake/{layer}/'
-    filename = f'raw_openweather_{today}'
+    if layer == 'landing':
+        filename = f'raw_openweather_{today}'
+    if layer == 'cleansed':
+        filename = f'clean_openweather_{today}'
+    else:
+        filename = f'trusted_openweather_{today}'
     file_path = f"{output_dir}{filename}.parquet"
      
     # check if parquet file already exists. IF yes, delete it and save a new one.
