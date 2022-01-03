@@ -1,26 +1,65 @@
-import re, os
-import shutil
-from itertools import chain
-from datetime import datetime
+import json, os, re, sys, logging
+from typing import Callable, Optional
+from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
+
+# find the project directory
+ABS_FILE_PATH = os.path.abspath(__file__) # file absolute path
+FILE_DIR = os.path.dirname(ABS_FILE_PATH) # file dir
+PROJECT_DIR = os.path.dirname(FILE_DIR) # project dir
+FILENAME = os.path.basename(__file__) # get the filename
+
+# create log file
+LOG_FILE = f"{PROJECT_DIR}/logs/job-{FILENAME}.log"
+
+# set log format
+LOG_FORMAT = f"%(asctime)s \
+    -LINE: %(lineno)d \
+    -%(name)s \
+    -%(levelname)s \
+    -%(funcName)s \
+    -%(message)s"
+
+# set logging configuration
+logging.basicConfig(filename=LOG_FILE, \
+                    level=logging.DEBUG, \
+                    format=LOG_FORMAT)
+logger = logging.getLogger('py4j')
+
+# insert POJECT_DIR path into sys.path at position 0
+# this way python can find where my packeges are installed
+# and is able to import them without errors.
+sys.path.insert(0, PROJECT_DIR)
+from classes import pyspark_class
+
+def main(PROJECT_DIR:str) -> None:
+    ''' Starts a Spark job '''
+    # get config file from json folder
+    config = openFile(f"{PROJECT_DIR}/conf/spark_session_config.json")
+    spark = sparkStart(config)
 
 
-def start_spark_session(appName, master) -> SparkSession:
+def sparkStart(config:dict) -> SparkSession:
     '''Get or Create Spark Session
     
     Params:
     -------
-        appName - str: Sets a name for the application, which will be shown in the Spark web UI.
-            If no application name is set, a randomly generated name will be used.
-            
-        master - str: Sets the Spark master URL to connect to, such as “local” to run locally, 
-            “local[4]” to run locally with 4 cores, or “spark://master:7077” to run on a Spark standalone cluster.
+        config - dict: json
     Return:
     -------
         SparkSession
     '''
-    return SparkSession.builder.appName(appName).master(master).getOrCreate()
+    if isinstance(config, dict):
+        return pyspark_class.SparkClass(conf={}).startSpark(config)
+    
+def openFile(filepath:str) -> dict:
+    def openJson(filepath:str) -> dict:
+        # check if filepath is str and if the filepath exists.
+        if isinstance(filepath, str) and os.path.exists(filepath): 
+            with open(filepath, "r") as F:
+                data = json.load(F)
+            return data
+    return (openJson(filepath))
 
 
 def read_json(schema, json_path):
