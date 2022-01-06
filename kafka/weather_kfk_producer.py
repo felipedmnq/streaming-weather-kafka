@@ -9,10 +9,12 @@ import requests
 from config import config
 from kafka import KafkaProducer
 
-kfk_bootstrap_server = 'localhost:9092'
+#kfk_bootstrap_server = 'localhost:9092'
+kfk_bootstrap_server = '127.0.0.1:9092'
 
 def kafka_producer() -> KafkaProducer:
     return KafkaProducer(
+        bootstrap_servers=[kfk_bootstrap_server],
         value_serializer=lambda x: json.dumps(x).encode('utf-8')
     )
 
@@ -62,13 +64,15 @@ def main():
     cities = ('London', 'Berlin', 'Paris', 'Barcelona', 'Amsterdam', 'Krakow', 'Vienna')
     while True:
         for city in cities:
-            openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}'
+            #openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}'
+            # units=metric -> return values in celcius
+            openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric'
             json_msg = get_weather_infos(openweather_endpoint)
             producer = kafka_producer()
             if isinstance(producer, KafkaProducer):
                 producer.send(kfk_topic, json_msg)
                 print(f'Published {city}: {json.dumps(json_msg)}')
-                sleep = 300
+                sleep = 60
                 print(f'Whaiting {sleep} seconds ...')
                 time.sleep(sleep)
 
