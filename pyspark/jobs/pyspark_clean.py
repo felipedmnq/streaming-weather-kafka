@@ -1,13 +1,21 @@
-import json, os, re, sys, logging
+import json, os, re, sys, logging, shutil
 from typing import Callable, Optional
+from itertools import chain
+from datetime import datetime
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import StringType, DoubleType, ArrayType
+
 
 # find the project directory
 ABS_FILE_PATH = os.path.abspath(__file__) # file absolute path
 FILE_DIR = os.path.dirname(ABS_FILE_PATH) # file dir
 PROJECT_DIR = os.path.dirname(FILE_DIR) # project dir
-FILENAME = os.path.basename(__file__) # get the filename
+MAIN_DIR = os.path.dirname(PROJECT_DIR)
+FILENAME = os.path.basename(__file__) # get the filenamecd
+
+today = f'{datetime.today().date()}'.replace('-', '')   
 
 # create log file
 LOG_FILE = f"{PROJECT_DIR}/logs/job-{FILENAME}.log"
@@ -30,14 +38,28 @@ logger = logging.getLogger('py4j')
 # this way python can find where my packeges are installed
 # and is able to import them without errors.
 sys.path.insert(0, PROJECT_DIR)
-from classes import pyspark_class
+from classes.pyspark_class import SparkClass
+from schemas.spark_schemas import main_schema
 
 def main(PROJECT_DIR:str) -> None:
     ''' Starts a Spark job '''
+    # extract mostly recent data from mongodb
+    #get_from_mongodb
     # get config file from json folder
     config = openFile(f"{PROJECT_DIR}/conf/spark_session_config.json")
+    # start sparksession
     spark = sparkStart(config)
-
+    # get most recent json file from landing layer
+    filepath = f"{MAIN_DIR}/data/data_lake/landing/openweather_{today}.json"
+    # create RDD
+    df = read_json(spark, main_schema, filepath)
+    df = clean_id(df)
+    df = city_names(df)
+    df = replace_country(df)
+    df = kelvin_to_fahreheint(df, "temp")
+    df = kelvin_to_celcius(df, "temp")
+    df = extract_date(df)
+    save_as_parquet(df)
 
 def sparkStart(config:dict) -> SparkSession:
     '''Get or Create Spark Session
@@ -50,19 +72,21 @@ def sparkStart(config:dict) -> SparkSession:
         SparkSession
     '''
     if isinstance(config, dict):
-        return pyspark_class.SparkClass(conf={}).startSpark(config)
+        return SparkClass(conf={}).startSpark(config)
     
 def openFile(filepath:str) -> dict:
+    
     def openJson(filepath:str) -> dict:
         # check if filepath is str and if the filepath exists.
         if isinstance(filepath, str) and os.path.exists(filepath): 
             with open(filepath, "r") as F:
                 data = json.load(F)
             return data
-    return (openJson(filepath))
+    
+    return openJson(filepath)
 
 
-def read_json(schema, json_path):
+def read_json(spark:SparkSession, schema, json_path):
     '''Read json file.
     
     Params:
@@ -74,7 +98,8 @@ def read_json(schema, json_path):
     -------
         Data Frame.
     '''
-    return pyspark.read.schema(schema).json(json_path)
+    if isinstance(spark, SparkSession):
+        return spark.read.schema(schema).json(json_path)
 
 def clean_id(df):
     '''Clean id column
@@ -87,12 +112,13 @@ def clean_id(df):
     -------
         data frame with column id cleaned.
     '''
-    def extract(col):
-        if col: return re.findall(r'"\d+\w+"', col)
-        else: return None
+    if isinstance(df, DataFrame):
+        def extract(col):
+            if col: return re.findall(r'"\d+\w+"', col)
+            else: return None
 
-    extract_udf = F.udf(lambda x: extract(x), ArrayType(StringType()))
-    df_cleaned_id = df.withColumn('id', extract_udf(df._id)[0]).drop('_id')
+        extract_udf = F.udf(lambda x: extract(x), ArrayType(StringType()))
+        df_cleaned_id = df.withColumn('id', extract_udf(df._id)[0]).drop('_id')
     
     return df_cleaned_id
 
@@ -113,9 +139,9 @@ def city_names(df):
         "2761369": "Vienna",
         "2643743": "London"
     }
-
-    mapping_expr = F.create_map([F.lit(x) for x in chain(*cities_map.items())])
-    df_cities = df.withColumn('city', mapping_expr.getItem(F.col("city_id")))
+    if isinstance(df, DataFrame):
+        mapping_expr = F.create_map([F.lit(x) for x in chain(*cities_map.items())])
+        df_cities = df.withColumn('city', mapping_expr.getItem(F.col("city_id")))
     
     return df_cities
 
@@ -132,8 +158,9 @@ def replace_country(df):
        "ES": "Spain",
        "FR": "France"
     }
-    mapping_expr = F.create_map([F.lit(x) for x in chain(*country_map.items())])
-    df_countries = df.withColumn('country', mapping_expr.getItem(F.col("country")))
+    if isinstance(df, DataFrame):
+        mapping_expr = F.create_map([F.lit(x) for x in chain(*country_map.items())])
+        df_countries = df.withColumn('country', mapping_expr.getItem(F.col("country")))
     
     return df_countries
 
@@ -154,10 +181,11 @@ def kelvin_to_fahreheint(df, col, new_col_name=None):
     F_func = lambda x: (x - 273.15) * 9/5 + 32
     F_udf = F.udf(F_func, DoubleType())
     
-    if new_col_name:
-        df_fahrehenint = df.withColumn(f'{new_col_name}', F.round(F_udf(df_countries[col]), 2))
-    else:
-        df_fahrehenint = df.withColumn(f'{col}_F', F.round(F_udf(df_countries[col]), 2))
+    if isinstance(df, DataFrame):
+        if new_col_name:
+            df_fahrehenint = df.withColumn(f'{new_col_name}', F.round(F_udf(df[col]), 2))
+        else:
+            df_fahrehenint = df.withColumn(f'{col}_F', F.round(F_udf(df[col]), 2))
     
     return df_fahrehenint
 
@@ -177,30 +205,27 @@ def kelvin_to_celcius(df, col, new_col_name=None):
     '''
     C_func = lambda x: x - 273.15
     C_udf = F.udf(C_func, DoubleType())
-    
-    if new_col_name:
-        df_celcius = df_fahrehenint.withColumn(new_col_name, F.round(C_udf(df_countries[col]), 2))
-    else:
-        df_celcius = df_fahrehenint.withColumn(f'{col}_C', F.round(C_udf(df_countries[col]), 2))
-        
+
+    if isinstance(df, DataFrame):
+        if new_col_name:
+            df_celcius = df.withColumn(new_col_name, F.round(C_udf(df[col]), 2))
+        else:
+            df_celcius = df.withColumn(f'{col}_C', F.round(C_udf(df[col]), 2))
+            
     return df_celcius
     
 
-def extract_date(df, param):
+def extract_date(df):
     '''Extract month, day or hour from "created_at"
     '''
-    if param == "month": 
+    if isinstance(df, DataFrame):
         df_month = df.withColumn("month", F.month(df.created_at))
-        return df_month
-    if param == "day": 
         df_day = df.withColumn("day", F.dayofmonth(df_month.created_at))
-        return df_day
-    if param == "hour": 
         df_hour = df.withColumn("hour", F.hour(df_day.created_at))
-        return df_hour
+    return df_hour
         
     
-def save_as_parquet(df, layer):
+def save_as_parquet(df, layer="cleansed"):
     '''Save dataframe as parquet.
     
     Params:
@@ -210,11 +235,7 @@ def save_as_parquet(df, layer):
             options: "landing", "cleansed", "trusted".
     '''
     # save as parquet
-    if layer not in ["landing", "cleansed", "trusted"]:
-        raise FileNotFoundError('Selected data lake layer does not exists, please use "landing", "cleased" or "trusted".')
-        
-    today = f'{datetime.today().date()}'.replace('-', '')   
-    output_dir = f'../data/data_lake/{layer}/'
+    output_dir = f'{MAIN_DIR}/data/data_lake/{layer}/'
     if layer == 'landing':
         filename = f'raw_openweather_{today}'
     if layer == 'cleansed':
@@ -227,7 +248,11 @@ def save_as_parquet(df, layer):
     # update parquet file
     if os.path.exists(file_path):
         shutil.rmtree(file_path, ignore_errors=True)
-
-    df.write.parquet(file_path)
+    if isinstance(df, DataFrame):
+        df.write.parquet(file_path)
+        print(f"{filename}.parquet saved at {output_dir}")
     
     return None
+
+if __name__=="__main__":
+    main(PROJECT_DIR)
