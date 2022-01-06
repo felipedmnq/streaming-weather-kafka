@@ -64,9 +64,9 @@ def main():
     cities = ('London', 'Berlin', 'Paris', 'Barcelona', 'Amsterdam', 'Krakow', 'Vienna')
     while True:
         for city in cities:
-            #openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}'
+            openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}'
             # units=metric -> return values in celcius
-            openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric'
+            #openweather_endpoint = f'http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric'
             json_msg = get_weather_infos(openweather_endpoint)
             producer = kafka_producer()
             if isinstance(producer, KafkaProducer):
