@@ -7,7 +7,7 @@ from pyspark import SparkContext
 
 class SparkClass:
     
-    def __init__(self, conf:dict):
+    def __init__(self, conf:dict) -> SparkSession:
         self.conf = conf
     
     def startSpark(self, kwargs:dict):
@@ -17,7 +17,7 @@ class SparkClass:
 
         # the values are optional, must be string and the defalt value was set
         def createSession(master: Optional[str]="local[*]",
-                          app_name: Optional[str]="MyApp") -> SparkSession: 
+                          app_name: Optional[str]="MyApp"): 
             ''' Creates a Spark Session '''
             spark = SparkSession \
                 .builder \
@@ -42,3 +42,6 @@ class SparkClass:
         getSettings(spark)
 
         return spark
+
+    def sparkStop(spark:SparkSession) -> None:
+        spark.stop() if isinstance(spark, SparkSession) else None
