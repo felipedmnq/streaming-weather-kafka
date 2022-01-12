@@ -22,7 +22,7 @@ def kafka_consumer(kfk_bootstrap_server:str, db_name:str) -> None:
         'openweather',
         bootstrap_servers=kfk_bootstrap_server,
         enable_auto_commit=True,
-        auto_offset_reset='latest',
+        auto_offset_reset='earliest',
         value_deserializer=lambda x: json.loads(x.decode('utf-8'))
     ) 
     # get list of databases from mongodb
