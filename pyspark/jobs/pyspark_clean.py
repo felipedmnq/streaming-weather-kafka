@@ -46,6 +46,7 @@ def main(PROJECT_DIR:str) -> None:
     # extract mostly recent data from mongodb
     #get_from_mongodb
     # get config file from json folder
+    asd
     config = openFile(f"{PROJECT_DIR}/conf/spark_session_config.json")
     # start sparksession
     spark = sparkStart(config)
