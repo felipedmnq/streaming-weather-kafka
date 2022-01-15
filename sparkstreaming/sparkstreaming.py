@@ -1,6 +1,6 @@
 import os, sys, json
 from pyspark.sql import SparkSession
-from pyspark.sql.avro.functions import from_avro
+from pyspark.sql.functions import explode, split
 from pyspark.sql.functions import col, from_json 
 
 # SET FOLDERS PATHS
@@ -40,16 +40,37 @@ if __name__=="__main__":
 
     df_value = df.selectExpr("CAST(value AS STRING)", "timestamp")
 
-    stream_values = df_value \
-        .writeStream \
-        .format("kafka") \
-        .option("kafka.bootstrap.servers", BTSTRAP_SERVER) \
-        .option("topic", KAFKA_TOPIC_OUTPUT) \
-        .outputMode("append") \
-        .option("checkpointLocation", f"{FILE_DIR}/checkpointLocation") \
-        .start()
+    # Split the lines into words
+    words = df_value.select(
+    explode(
+        split(df_value.value, " ")
+    ).alias("word")
+    )
 
-    stream_values.awaitTermination()
+    # Generate running word count
+    wordCounts = words.groupBy("word").count()
+
+    query = wordCounts \
+    .writeStream \
+    .outputMode("complete") \
+    .format("console") \
+    .start()
+
+    query.awaitTermination()
+
+    #stream_values = df_value \
+    #    .writeStream \
+    #    .format("kafka") \
+    #    .option("kafka.bootstrap.servers", BTSTRAP_SERVER) \
+    #    .option("topic", KAFKA_TOPIC_OUTPUT) \
+    #    .outputMode("append") \
+    #    .option("checkpointLocation", f"{FILE_DIR}/checkpointLocation") \
+    #    .start()
+    #
+    #print(f"\033[32mDF TYPE: {type(df)}\033[0m")
+    #print(f"\033[32mDF_VALUE TYPE: {type(df_value)}\033[0m")
+    #print(f"\033[32mSTREAM VALUES TYPE: {type(stream_values)}\033[0m")
+    #stream_values.awaitTermination(30)
 
     
     
