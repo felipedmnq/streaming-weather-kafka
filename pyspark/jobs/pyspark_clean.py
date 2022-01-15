@@ -2,6 +2,7 @@ import json, os, re, sys, logging, shutil
 from typing import Callable, Optional
 from itertools import chain
 from datetime import datetime
+from h11 import Data
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -46,7 +47,6 @@ def main(PROJECT_DIR:str) -> None:
     # extract mostly recent data from mongodb
     #get_from_mongodb
     # get config file from json folder
-    asd
     config = openFile(f"{PROJECT_DIR}/conf/spark_session_config.json")
     # start sparksession
     spark = sparkStart(config)
@@ -87,7 +87,7 @@ def openFile(filepath:str) -> dict:
     return openJson(filepath)
 
 
-def read_json(spark:SparkSession, schema, json_path):
+def read_json(spark:SparkSession, schema, json_path) -> SparkSession:
     '''Read json file.
     
     Params:
@@ -102,7 +102,7 @@ def read_json(spark:SparkSession, schema, json_path):
     if isinstance(spark, SparkSession):
         return spark.read.schema(schema).json(json_path)
 
-def clean_id(df):
+def clean_id(df: DataFrame) -> DataFrame:
     '''Clean id column
     
     Params:
@@ -124,7 +124,7 @@ def clean_id(df):
     return df_cleaned_id
 
 
-def city_names(df):
+def city_names(df: DataFrame) -> DataFrame:
     '''Create new column with cities names.
     
     Return:
@@ -147,7 +147,7 @@ def city_names(df):
     return df_cities
 
 
-def replace_country(df):
+def replace_country(df: DataFrame) -> DataFrame:
     '''Replace country abbreviation with the country name.
     '''
     country_map = {
@@ -166,7 +166,7 @@ def replace_country(df):
     return df_countries
 
 
-def kelvin_to_fahreheint(df, col, new_col_name=None):
+def kelvin_to_fahreheint(df: DataFrame, col, new_col_name=None) -> DataFrame:
     '''Converts the temperature from kelvin to Fahreheint and create a new column with the result.
     
     Params:
@@ -191,7 +191,7 @@ def kelvin_to_fahreheint(df, col, new_col_name=None):
     return df_fahrehenint
 
 
-def kelvin_to_celcius(df, col, new_col_name=None):
+def kelvin_to_celcius(df: DataFrame, col, new_col_name=None) -> DataFrame:
     '''Converts the temperature from kelvin to Celcius and create a new column with the result.
     
     Params:
@@ -216,7 +216,7 @@ def kelvin_to_celcius(df, col, new_col_name=None):
     return df_celcius
     
 
-def extract_date(df):
+def extract_date(df: DataFrame) -> DataFrame:
     '''Extract month, day or hour from "created_at"
     '''
     if isinstance(df, DataFrame):
@@ -226,7 +226,7 @@ def extract_date(df):
     return df_hour
         
     
-def save_as_parquet(df, layer="cleansed"):
+def save_as_parquet(df:DataFrame, layer="cleansed") -> None:
     '''Save dataframe as parquet.
     
     Params:
