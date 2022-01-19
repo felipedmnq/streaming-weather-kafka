@@ -1,8 +1,6 @@
 import json, os, re, sys, logging, shutil
-from typing import Callable, Optional
 from itertools import chain
 from datetime import datetime
-from h11 import Data
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -51,7 +49,8 @@ def main(PROJECT_DIR:str) -> None:
     # start sparksession
     spark = sparkStart(config)
     # get most recent json file from landing layer
-    filepath = f"{MAIN_DIR}/data/data_lake/landing/openweather_{today}.json"
+    #filepath = f"{MAIN_DIR}/data/data_lake/landing/openweather_{today}.json"
+    filepath = [*os.walk(f"{MAIN_DIR}/data/data_lake/landing")][0][-1][-1]
     # create RDD
     df = read_json(spark, main_schema, filepath)
     df = clean_id(df)

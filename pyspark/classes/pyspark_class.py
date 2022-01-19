@@ -1,9 +1,5 @@
-import json, os, re, sys
-
-from typing import Callable, Optional
-from pyspark.sql.dataframe import DataFrame
+from typing import Optional
 from pyspark.sql import SparkSession
-from pyspark import SparkContext
 
 class SparkClass:
     
