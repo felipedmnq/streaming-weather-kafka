@@ -11,7 +11,7 @@ from bson.json_util import dumps
 #db = 'openweather_db'
 #collection = 'openweather'
 
-def openweather_mdb_to_json(mongo_uri:str, db:str, collection:str) -> None:
+def openweather_mdb_to_json(mongo_uri:str, db:str, collection:str, path_to_save:str) -> None:
     '''Get data from MongoDB and saves as json file.
     
     Params:
@@ -40,20 +40,19 @@ def openweather_mdb_to_json(mongo_uri:str, db:str, collection:str) -> None:
     json_data = dumps(data_list) 
 
     today = datetime.today().date()
-    path = '../data/data_lake/landing/'
     filename = f'openweather_{today}.json'.replace('-','')
     
      # create data folder if not exixts
-    if not os.path.exists(path):
+    if not os.path.exists(path_to_save):
         #os.makedirs(path)
-        print(f'{path} does not exists.')
+        print(f'{path_to_save} does not exists.')
         raise FileNotFoundError
 
     # Writing data to file openweather.json
-    with open(f'{path}{filename}', 'w') as file:
+    with open(f'{path_to_save}{filename}', 'w') as file:
         file.write(json_data)
 
-    print(f'{filename} saved at {path}.')
+    print(f'{filename} saved at {path_to_save}.')
 
     return None
 
@@ -86,6 +85,14 @@ def parse_args():
         help='<REQUIRED> Collection to extract the data.'
     )
 
+    parser.add_argument(
+        '-p',
+        '--path_to_save',
+        type=str,
+        default='../data/data_lake/landing',
+        help='Path where the json file will be saved'
+    )
+
     args = parser.parse_args()
     return args
 
@@ -94,10 +101,12 @@ def main():
     mongo_uri = args.mongouri
     db = args.database
     collection = args.collection
+    path_to_save = args.path_to_save
 
     openweather_mdb_to_json(mongo_uri=mongo_uri,
                             db=db,
-                            collection=collection)
+                            collection=collection,
+                            path_to_save=path_to_save)
 
 if __name__=='__main__':
     main()
