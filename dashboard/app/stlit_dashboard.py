@@ -68,7 +68,9 @@ with sidebar:
             spark = sparkStart(config)
             # get most recent json file from landing layer
             #filepath = f"{MAIN_DIR}/data/data_lake/landing/openweather_{today}.json"
-            filepath = [*os.walk(f"{MAIN_DIR}/data/data_lake/landing")][0][-1][-1]
+            last_json_filepath = [*os.walk(f"{MAIN_DIR}/data/data_lake/landing")][0][-1][-1]
+            filepath = f"{MAIN_DIR}/data/data_lake/landing/{last_json_filepath}"
+            st.write(filepath)
             # create RDD
             df = read_json(spark, main_schema, filepath)
             df = clean_id(df)
