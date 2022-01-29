@@ -28,22 +28,22 @@ sys.path.insert(2, f"{MAIN_DIR}/pyspark")
 from jobs.pyspark_clean import *
 
 # UPDATE DATA
+@st.cache
 def up_to_date(df: DataFrame) -> DataFrame:
-
     df["date"] = df["created_at"].apply(lambda date: date.strftime("%Y-%m-%d"))
     df["date"] = pd.to_datetime(df["date"])
     df = df.groupby(["date", "hour", "city"])[["temp_F", "temp_C", "humidity"]].mean().reset_index()
     last_date = max(df["date"])
-    last_hour = max(df["hour"])
     df = df[df["date"] == last_date].reset_index(drop=True)
     return df
 
 # GROUP CITIES BY DATE
+@st.cache
 def group_data(df: DataFrame) -> DataFrame:    
     df["date"] = df["created_at"].apply(lambda date: date.strftime("%Y-%m-%d"))
     df["date"] = pd.to_datetime(df["date"])
-    df = df.groupby(["hour", "date", "city"])[["temp_F", "temp_C", "humidity"]].mean().reset_index()
-    df = df.sort_values(by=["date", "hour"]).tail(7)
+    df = df.groupby(["hour", "date", "city"])[["temp_F", "temp_C", "humidity"]].mean()
+    df = df.sort_values(by=["date", "hour"]).reset_index()
     return df
 
 # LINEPLOT - TEMPERATURE BY DAY BY CITY
@@ -51,9 +51,23 @@ def line_plot_by_day(df: DataFrame, city: str) -> Figure:
     df3 = df[df["city"] == f"{city}"]
     fig = plt.figure(figsize=(6, 2))
     sns.lineplot(x=df3["hour"], y=df3["temp_C"], markers='o')
-    plt.xticks(rotation=30)
+    plt.xticks(rotation=90)
     plt.grid()
-    plt.title(f"Average Temerature by hour - {city}")
+    max_date = max(df3['date']).date().strftime("%d/%m/%y")
+    plt.title(f"{max_date} - Avg. Temp. by Hour - {city}")
+    plt.ylabel("Temperature - C")
+    plt.xticks(range(1,24))
+    return fig
+
+# LINEPLOT - ALL CITIES
+def line_plot_all_cities(df: DataFrame) -> Figure:
+    fig = plt.figure(figsize=(7, 3))
+    sns.lineplot(x=df["hour"], y=df["temp_C"], hue=df["city"], markers='o', ci=None)
+    plt.xticks(rotation=90)
+    plt.grid()
+    max_date = max(df['date']).date().strftime("%d/%m/%y")
+    plt.title(f"{max_date} - Avg. Temp. by Hour")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.ylabel("Temperature - C")
     plt.xticks(range(1,24))
     return fig
@@ -93,6 +107,7 @@ dashboard = st.container()
 
 # SET INITIAL DATAFRAME
 DF = get_data()
+DFG = group_data(DF)
 
 with sidebar:
     with header:
@@ -131,20 +146,16 @@ with dashboard:
     block2 = st.container()
 
     with block1:
-        data = group_data(DF)
+        data = DFG
         data = data.drop(columns=["hour", "date"])
         st.header("Weather Table")
-        st.write(data)
+        st.write(data.tail(7).reset_index(drop=True))
 
     with block2:
         st.header("Graph and Map")
         col1, col2 = st.columns(2)
-        with col1:
-            dfg = group_data(DF)
-            st.pyplot(line_plot_by_day(dfg, city=city))
-
-        #with col2:
-            #st.line_chart(line_plot_by_day(dfg, city=city))
-            #st.map(df)
-
-
+        if not all_cities:
+            with col1:
+                st.pyplot(line_plot_by_day(DFG, city=city))
+        else:
+            st.pyplot(line_plot_all_cities(DFG))
